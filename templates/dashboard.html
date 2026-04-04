@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - BudgetFlow{% endblock %}
+{% block page_title %}Tableau de Bord{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <!-- 4 cartes standards (gauche 2x2) -->
+    <div class="kpi-card income">
+        <div class="kpi-icon"><i class="fas fa-arrow-trend-up"></i></div>
+        <div class="kpi-info">
+            <p class="kpi-label">Revenus Mensuels</p>
+            <h2 class="kpi-value">{{ "{:,.2f}".format(total_rev) }} <span class="device">{{ config.devise }}</span></h2>
+            <span class="kpi-sub">Récurrents + Occasionnels</span>
+        </div>
+    </div>
+    <div class="kpi-card expense">
+        <div class="kpi-icon"><i class="fas fa-arrow-trend-down"></i></div>
+        <div class="kpi-info">
+            <p class="kpi-label">Total Dépenses</p>
+            <h2 class="kpi-value">{{ "{:,.2f}".format(total_dep) }} <span class="device">{{ config.devise }}</span></h2>
+            <span class="kpi-sub">Ce mois-ci</span>
+        </div>
+    </div>
+    <div class="kpi-card balance {% if reste >= 0 %}positive{% else %}negative{% endif %}">
+        <div class="kpi-icon"><i class="fas fa-scale-balanced"></i></div>
+        <div class="kpi-info">
+            <p class="kpi-label">Reste à Dépenser</p>
+            <h2 class="kpi-value">{{ "{:,.2f}".format(reste) }} <span class="device">{{ config.devise }}</span></h2>
+            <span class="kpi-sub">{% if reste >= 0 %}Solde positif ✅{% else %}Déficit ⚠️{% endif %}</span>
+        </div>
+    </div>
+    <div class="kpi-card savings">
+        <div class="kpi-icon"><i class="fas fa-piggy-bank"></i></div>
+        <div class="kpi-info">
+            <p class="kpi-label">Taux d'Épargne</p>
+            <h2 class="kpi-value">{{ taux_epargne }}%</h2>
+            <span class="kpi-sub">Objectif: {{ repartition.regles.epargne }}%</span>
+        </div>
+    </div>
+    
+    <!-- 5ème carte : État du Budget (droite, span 2 lignes) -->
+    <div class="kpi-card" style="border: 1px solid {{ etat_budget.couleur }}; border-bottom: 14px;">
+        <div class="etat-badge" style="background: {{ etat_budget.couleur }}20; color: {{ etat_budget.couleur }};">
+            <span>{{ etat_budget.icone }}</span>
+            <span>État: {{ etat_budget.etat }}</span>
+        </div>
+        <p class="etat-message">{{ etat_budget.message }}</p>
+        <div class="progress-bar" style="margin-top:16px;">
+            {% set ratio = (total_rev - total_dep) / max(total_rev, 1) * 100 %}
+            <div class="progress-fill {% if ratio >= 5 %}ok{% elif ratio >= 0 %}warn{% else %}over{% endif %}" style="width: {{ max(0, min(100, 50 + ratio)) }}%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 1: Budget Distribution + Budget State -->
+<div class="dashboard-row">
+    <!-- Distribution du Budget -->
+    <div class="card chart-card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-pie"></i> Distribution du Budget (Règle 3 Comptes)</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="budgetPieChart"></canvas>
+        </div>
+        <div class="budget-legend">
+            <div class="legend-item">
+                <span class="legend-color" style="background:#6366f1"></span>
+                <span>Besoins ({{ repartition.regles.besoins }}%): {{ "{:,.2f}".format(repartition.besoins) }} {{ config.devise }}</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background:#f59e0b"></span>
+                <span>Envies ({{ repartition.regles.envies }}%): {{ "{:,.2f}".format(repartition.envies) }} {{ config.devise }}</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background:#10b981"></span>
+                <span>Épargne ({{ repartition.regles.epargne }}%): {{ "{:,.2f}".format(repartition.epargne) }} {{ config.devise }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- État du Budget -->
+    <div class="card chart-card">
+        <div class="card-header">
+            <h3><i class="fas fa-gauge-high"></i> État du Budget par Compte</h3>
+        </div>
+        <div class="budget-state">
+            {% for compte, label in [('besoins', '🏠 Besoins Essentiels'), ('envies', '🎮 Envies & Plaisirs'), ('epargne', '💰 Épargne')] %}
+            {% set budget = repartition[compte] %}
+            {% set depense = depenses_compte.get(compte, 0) %}
+            {% set reste_c = budget - depense %}
+            {% set pct = (depense / max(budget, 1)) * 100 %}
+            <div class="budget-account">
+                <div class="account-header">
+                    <span class="account-label">{{ label }}</span>
+                    <span class="account-amount">{{ "{:,.2f}".format(depense) }} / {{ "{:,.2f}".format(budget) }} {{ config.devise }}</span>
+                </div>
+                <div class="progress-bar">
+                    {% set reste = budget - depense %}
+                    {% set pct_reste = (reste / max(budget, 1)) * 100 %}
+                    <div class="progress-fill {% if pct_reste > 30 %}ok{% elif pct_reste > 15 %}warn{% else %}over{% endif %}" style="width: {{ pct_reste }}%">
+                        <span class="progress-label">{{ pct_reste|round(1) }}% restant</span>
+                    </div>
+                </div>
+                <div class="account-footer">
+                    <span>Consommé: <strong style="color:#ef4444">{{ "{:,.2f}".format(depense) }} {{ config.devise }}</strong></span>
+                    <span>Reste: <strong style="color: {% if reste >= 0 %}#10b981{% else %}#ef4444{% endif %}">{{ "{:,.2f}".format(reste) }} {{ config.devise }}</strong></span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Row 2: Plus grosse dépense + Dépenses par jour -->
+<div class="dashboard-row">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-fire"></i> Plus Grosse Dépense du Mois</h3>
+        </div>
+        <div class="biggest-expense">
+            <div class="expense-amount">{{ "{:,.2f}".format(plus_grosse.montant|float) }} {{ config.devise }}</div>
+            <div class="expense-desc">{{ plus_grosse.description }}</div>
+            <div class="expense-meta">
+                <span><i class="fas fa-tag"></i> {{ plus_grosse.categorie }}</span>
+                <span><i class="fas fa-calendar"></i> {{ plus_grosse.date[:10] }}</span>
+                <span><i class="fas fa-vault"></i> {{ plus_grosse.compte }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card chart-card">
+        <div class="card-header">
+            <h3><i class="fas fa-calendar-day"></i> Dépenses par Jour</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="dailyExpensesChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Row 3: Dépenses par catégorie + Historique -->
+<div class="dashboard-row">
+    <div class="card chart-card">
+        <div class="card-header">
+            <h3><i class="fas fa-tags"></i> Dépenses par Catégorie</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card chart-card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-area"></i> Progression Revenus vs Dépenses</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="historyChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Conseils -->
+<div class="card conseils-card">
+    <div class="card-header">
+        <h3><i class="fas fa-lightbulb"></i> Conseils Personnalisés & Analyse</h3>
+    </div>
+    <div class="conseils-grid">
+        {% for conseil in conseils %}
+        <div class="conseil-item {{ conseil.type }}">
+            <div class="conseil-icon">{{ conseil.icone }}</div>
+            <div class="conseil-content">
+                <h4>{{ conseil.titre }}</h4>
+                <p>{{ conseil.message }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const config = {{ config|tojson }};
+const depensesCat = {{ depenses_cat|tojson }};
+const depensesJour = {{ depenses_jour|tojson }};
+const historique = {{ historique|tojson }};
+const repartition = {{ repartition|tojson }};
+const depensesCompte = {{ depenses_compte|tojson }};
+
+// Pie Chart - Distribution Budget
+new Chart(document.getElementById('budgetPieChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Besoins', 'Envies', 'Épargne'],
+        datasets: [{
+            data: [repartition.besoins, repartition.envies, repartition.epargne],
+            backgroundColor: ['#6366f1', '#f59e0b', '#10b981'],
+            borderWidth: 0,
+            hoverOffset: 10
+        }]
+    },
+    options: {
+        responsive: true,
+        cutout: '65%',
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: ctx => `${ctx.label}: ${config.devise} ${ctx.parsed.toLocaleString('fr-FR', {minimumFractionDigits:2})}`
+                }
+            }
+        }
+    }
+});
+
+// Bar Chart - Dépenses par jour
+const joursLabels = Object.keys(depensesJour).sort((a,b) => a - b).map(j => `J${j}`);
+const joursValues = Object.keys(depensesJour).sort((a,b) => a - b).map(j => depensesJour[j]);
+new Chart(document.getElementById('dailyExpensesChart'), {
+    type: 'bar',
+    data: {
+        labels: joursLabels.length ? joursLabels : ['Aucune'],
+        datasets: [{
+            label: 'Dépenses',
+            data: joursValues.length ? joursValues : [0],
+            backgroundColor: joursValues.map(v => v > 100 ? '#ef4444' : v > 50 ? '#f59e0b' : '#6366f1'),
+            borderRadius: 6,
+            borderSkipped: false
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+// Doughnut - Catégories
+const catLabels = Object.keys(depensesCat);
+const catValues = Object.values(depensesCat);
+const catColors = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316'];
+new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+        labels: catLabels.length ? catLabels : ['Aucune dépense'],
+        datasets: [{
+            data: catValues.length ? catValues : [0],
+            backgroundColor: catColors.slice(0, catLabels.length || 1),
+            borderWidth: 2,
+            borderColor: '#1e1e2e'
+        }]
+    },
+    options: {
+        responsive: true,
+        cutout: '55%',
+        plugins: {
+            legend: { position: 'right', labels: { color: '#a0a0b0', padding: 12, usePointStyle: true } },
+            tooltip: {
+                callbacks: {
+                    label: ctx => ` ${ctx.label}: ${config.devise} ${ctx.parsed.toLocaleString('fr-FR', {minimumFractionDigits:2})}`
+                }
+            }
+        }
+    }
+});
+
+// Line Chart - Historique
+new Chart(document.getElementById('historyChart'), {
+    type: 'line',
+    data: {
+        labels: historique.map(h => h.mois.substring(0, 3)),
+        datasets: [
+            {
+                label: 'Revenus',
+                data: historique.map(h => h.revenus),
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16,185,129,0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#10b981'
+            },
+            {
+                label: 'Dépenses',
+                data: historique.map(h => h.depenses),
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239,68,68,0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#ef4444'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#a0a0b0' } } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+</script>
+{% endblock %}

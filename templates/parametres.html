@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Paramètres - BudgetFlow{% endblock %}
+{% block page_title %}Paramètres{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:600px;">
+    <div class="card-header">
+        <h3><i class="fas fa-sliders"></i> Configuration</h3>
+    </div>
+    <form method="POST">
+        <div class="form-group">
+            <label>Nom d'utilisateur affiché</label>
+            <input type="text" name="nom_utilisateur" value="{{ config.nom_utilisateur }}" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;">
+        </div>
+        <div class="form-group">
+            <label>Devise</label>
+            <select name="devise" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;">
+                <option value="MRU" {% if config.devise == 'MRU' %}selected{% endif %}>Nouveau Uguiya</option>
+                <option value="€" {% if config.devise == '€' %}selected{% endif %}>€ Euro</option>
+                <option value="$" {% if config.devise == '$' %}selected{% endif %}>$ Dollar</option>
+                <option value="£" {% if config.devise == '£' %}selected{% endif %}>£ Livre</option>
+                <option value="DH" {% if config.devise == 'DH' %}selected{% endif %}>DH Dirham</option>
+                <option value="FC" {% if config.devise == 'FC' %}selected{% endif %}>FC Franc CFA</option>
+            </select>
+        </div>
+        <hr style="border-color:rgba(255,255,255,0.1);margin:20px 0;">
+        <h4 style="margin-bottom:15px;color:#a0a0b0;">Règle des 3 Comptes (%)</h4>
+        <div class="form-row">
+            <div class="form-group">
+                <label>🏠 Besoins (%)</label>
+                <input type="number" name="besoins" value="{{ config.rules.besoins }}" min="0" max="100" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;">
+            </div>
+            <div class="form-group">
+                <label>🎮 Envies (%)</label>
+                <input type="number" name="envies" value="{{ config.rules.envies }}" min="0" max="100" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;">
+            </div>
+            <div class="form-group">
+                <label>💰 Épargne (%)</label>
+                <input type="number" name="epargne" value="{{ config.rules.epargne }}" min="0" max="100" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top:20px;">💾 Sauvegarder</button>
+    </form>
+</div>
+{% endblock %}

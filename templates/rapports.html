@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Rapports - BudgetFlow{% endblock %}
+{% block page_title %}Rapports & Historique{% endblock %}
+
+{% block content %}
+<div class="dashboard-row">
+    <div class="card chart-card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-area"></i> Historique 12 Mois - Revenus vs Dépenses</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="reportHistoryChart"></canvas>
+        </div>
+    </div>
+    <div class="card chart-card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-bar"></i> Solde Mensuel</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="reportSoldeChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-row">
+    <div class="card chart-card">
+        <div class="card-header">
+            <h3><i class="fas fa-tags"></i> Répartition par Catégorie</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="reportCatChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-table"></i> Tableau Récapitulatif</h3>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr><th>Mois</th><th>Revenus</th><th>Dépenses</th><th>Solde</th><th>Statut</th></tr>
+            </thead>
+            <tbody>
+                {% for h in historique|reverse %}
+                <tr>
+                    <td>{{ h.mois }}</td>
+                    <td>{{ config.devise }} {{ "{:,.2f}".format(h.revenus) }}</td>
+                    <td>{{ config.devise }} {{ "{:,.2f}".format(h.depenses) }}</td>
+                    <td style="color: {% if h.solde >= 0 %}#10b981{% else %}#ef4444{% endif %}">
+                        {{ config.devise }} {{ "{:,.2f}".format(h.solde) }}
+                    </td>
+                    <td>
+                        {% if h.solde >= 0 %}<span class="badge badge-green">✅ Positif</span>
+                        {% else %}<span class="badge badge-red">❌ Négatif</span>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const historique = {{ historique|tojson }};
+const depensesCat = {{ depenses_cat|tojson }};
+
+new Chart(document.getElementById('reportHistoryChart'), {
+    type: 'line',
+    data: {
+        labels: historique.map(h => h.mois.substring(0, 3)),
+        datasets: [
+            { label: 'Revenus', data: historique.map(h => h.revenus), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 },
+            { label: 'Dépenses', data: historique.map(h => h.depenses), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4 }
+        ]
+    },
+    options: { responsive: true, plugins: { legend: { labels: { color: '#a0a0b0' } } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } }
+});
+
+new Chart(document.getElementById('reportSoldeChart'), {
+    type: 'bar',
+    data: {
+        labels: historique.map(h => h.mois.substring(0, 3)),
+        datasets: [{
+            label: 'Solde',
+            data: historique.map(h => h.solde),
+            backgroundColor: historique.map(h => h.solde >= 0 ? '#10b981' : '#ef4444'),
+            borderRadius: 6
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } }
+});
+
+new Chart(document.getElementById('reportCatChart'), {
+    type: 'polarArea',
+    data: {
+        labels: Object.keys(depensesCat),
+        datasets: [{
+            data: Object.values(depensesCat),
+            backgroundColor: ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316']
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#a0a0b0' } } } }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Dépenses - BudgetFlow{% endblock %}
+{% block page_title %}Gestion des Dépenses{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header">
+        <h3><i class="fas fa-receipt"></i> Liste des Dépenses</h3>
+        <button class="btn btn-primary" onclick="openDepenseModal()">
+            <i class="fas fa-plus"></i> Ajouter Dépense
+        </button>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Montant</th>
+                    <th>Catégorie</th>
+                    <th>Compte</th>
+                    <th>Date</th>
+                    <th>Récurrent</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in depenses %}
+                <tr>
+                    <td>
+                        <strong>{{ d.description }}</strong>
+                        {% if d.note %}<br><small style="color:#666">{{ d.note }}</small>{% endif %}
+                    </td>
+                    <td><strong style="color:#ef4444">-{{ "{:,.2f}".format(d.montant|float) }} {{ config.devise }}</strong></td>
+                    <td><span class="badge badge-blue">{{ d.categorie }}</span></td>
+                    <td>
+                        <span class="badge {% if d.compte=='besoins' %}badge-indigo{% elif d.compte=='envies' %}badge-orange{% else %}badge-green{% endif %}">
+                            {{ d.compte }}
+                        </span>
+                    </td>
+                    <td>{{ d.date[:10] }}</td>
+                    <td>
+                        {% if d.recurrent %}
+                        <span class="badge badge-purple"><i class="fas fa-sync"></i> {{ d.periode or 'mensuel' }}</span>
+                        {% else %}
+                        <span style="color:#666">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn-icon" onclick="editDepense('{{ d.id }}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon btn-danger" onclick="deleteSource('{{ d.id }}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+    <!-- Gestion des Dettes -->
+<div class="card" style="margin-top:24px;">
+    <div class="card-header">
+        <h3><i class="fas fa-hand-holding-dollar"></i> Dettes & Créances</h3>
+        <button class="btn btn-primary" onclick="openCDModal()"><i class="fas fa-plus"></i> Ajouter</button>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead><tr><th>Type</th><th>Partenaire</th><th>Initial</th><th>Restant</th><th>Intérêt</th><th>Statut</th><th>Action</th></tr></thead>
+            <tbody id="cdTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Dépense -->
+<div class="modal-overlay" id="depenseModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="depenseModalTitle">Ajouter une Dépense</h3>
+            <button class="modal-close" onclick="closeDepenseModal()">&times;</button>
+        </div>
+        <form id="depenseForm" onsubmit="saveDepense(event)">
+            <input type="hidden" id="depenseId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="depDesc" required placeholder="Ex: Courses alimentaires">
+                </div>
+                <div class="form-group">
+                    <label>Montant</label>
+                    <input type="number" id="depMontant" step="0.01" required placeholder="0.00">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Catégorie</label>
+                    <select id="depCategorie">
+                        <option value="alimentation">🍔 Alimentation</option>
+                        <option value="logement">🏠 Logement</option>
+                        <option value="transport">🚗 Transport</option>
+                        <option value="sante">🏥 Santé</option>
+                        <option value="loisirs">🎮 Loisirs</option>
+                        <option value="shopping">🛍️ Shopping</option>
+                        <option value="education">📚 Éducation</option>
+                        <option value="factures">💡 Factures</option>
+                        <option value="abonnements">📱 Abonnements</option>
+                        <option value="vetements">👕 Vêtements</option>
+                        <option value="cadeaux">🎁 Cadeaux</option>
+                        <option value="autre">📦 Autre</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Compte (3 règles)</label>
+                    <select id="depCompte">
+                        <option value="besoins">🏠 Besoins (50%)</option>
+                        <option value="envies">🎮 Envies (30%)</option>
+                        <option value="epargne">💰 Épargne (20%)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="depDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Récurrent ?</label>
+                    <select id="depRecurrent">
+                        <option value="false">Non, ponctuel</option>
+                        <option value="true">Oui, récurrent</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Note (optionnel)</label>
+                <input type="text" id="depNote" placeholder="Détails supplémentaires...">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDepenseModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary">💾 Sauvegarder</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openDepenseModal() {
+    document.getElementById('depenseModalTitle').textContent = 'Ajouter une Dépense';
+    document.getElementById('depenseForm').reset();
+    document.getElementById('depenseId').value = '';
+    document.getElementById('depDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('depenseModal').classList.add('active');
+}
+function closeDepenseModal() { document.getElementById('depenseModal').classList.remove('active'); }
+
+function editDepense(id) {
+    fetch('/api/depenses')
+        .then(r => r.json())
+        .then(deps => {
+            const d = deps.find(x => x.id === id);
+            if (d) {
+                document.getElementById('depenseModalTitle').textContent = 'Modifier la Dépense';
+                document.getElementById('depenseId').value = d.id;
+                document.getElementById('depDesc').value = d.description;
+                document.getElementById('depMontant').value = d.montant;
+                document.getElementById('depCategorie').value = d.categorie;
+                document.getElementById('depCompte').value = d.compte;
+                document.getElementById('depDate').value = d.date.split('T')[0];
+                document.getElementById('depRecurrent').value = (d.recurrent || false).toString();
+                document.getElementById('depNote').value = d.note || '';
+                document.getElementById('depenseModal').classList.add('active');
+            }
+        });
+}
+
+function saveDepense(e) {
+    e.preventDefault();
+    const data = {
+        id: document.getElementById('depenseId').value || undefined,
+        description: document.getElementById('depDesc').value,
+        montant: parseFloat(document.getElementById('depMontant').value),
+        categorie: document.getElementById('depCategorie').value,
+        compte: document.getElementById('depCompte').value,
+        date: document.getElementById('depDate').value,
+        recurrent: document.getElementById('depRecurrent').value === 'true',
+        note: document.getElementById('depNote').value
+    };
+    const method = data.id ? 'PUT' : 'POST';
+    fetch('/api/depenses', {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    }).then(r => r.json()).then(res => {
+        if (res.success) location.reload();
+    });
+}
+
+function deleteSource(id) {
+    Swal.fire({
+        title: 'Supprimer cette source ?',
+        text: "Cette action est irréversible.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#6366f1',
+        cancelButtonColor: '#ef4444',
+        confirmButtonText: 'Oui, supprimer',
+        cancelButtonText: 'Annuler'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/api/depenses', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id})
+            }).then(r => r.json()).then(res => {
+                if (res.success) {
+                    Swal.fire('Supprimé !', 'La source a été retirée.', 'success').then(() => location.reload());
+                }
+            });
+        }
+    });
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', chargerCD);
+
+function chargerCD() {
+    fetch('/api/creances_dettes').then(r=>r.json()).then(items => {
+        const t = document.getElementById('cdTable'); t.innerHTML = '';
+        if(!items.length) { t.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:10px;color:var(--text-muted)">Aucune dette ou créance</td></tr>'; return; }
+        items.forEach(i => {
+            const isPaye = i.statut === 'paye';
+            t.innerHTML += `
+                <tr>
+                    <td><span class="badge ${i.type==='dette'?'badge-red':'badge-green'}">${i.type==='dette'?'💸 Je dois':'💰 On me doit'}</span></td>
+                    <td style="font-size: 12px; font-weight: 400;">${i.partenaire}</td>
+                    <td style="font-size: 12px; font-weight: 400;">${i.montant_initial.toFixed(2)} {{ config.devise }}</td>
+                    <td style="font-size: 12px; font-weight: 400;">
+                        <div style="display:flex;align-items:center;gap:6px">
+                            <div class="progress-bar" style="width:60px;height:2px;"><div class="progress-fill ${i.montant_restant/i.montant_total>0.5?'ok':'over'}" style="width:${(i.montant_restant/i.montant_total)*100}%"></div></div>
+                            <span>${i.montant_restant.toFixed(2)} {{ config.devise }}</span>
+                        </div>
+                    </td>
+                    <td style="font-size: 12px; font-weight: 400;">${i.interet.toFixed(2)} {{ config.devise }}</td>
+                    <td style="font-size: 12px; font-weight: 400;"><span class="badge ${isPaye?'badge-paye':'badge-encours'}">${isPaye?'✅ Payé/Remboursé':'⏳ En cours'}</span></td>
+                    <td style="font-size: 12px; font-weight: 400;">
+                        ${isPaye 
+                            ? `<button class="btn-icon btn-disabled" disabled title="Déjà réglé"><i class="fas fa-check"></i></button>` 
+                            : `<button class="btn-icon" onclick="payerCD('${i.id}', ${i.montant_restant})" style="color:#10b981"><i class="fas fa-money-bill-wave"></i></button>`}
+                    </td>
+                </tr>
+            `;
+        });
+    });
+}
+
+function openCDModal() {
+    Swal.fire({
+        title: 'Dette ou Créance ?',
+        input: 'select', inputOptions: { dette: "💸 Je dois à quelqu'un", creance: "💰 Quelqu'un me doit" },
+        html: `<input id="swal-part" class="swal2-input" placeholder="Nom du partenaire"><input id="swal-mont" type="number" class="swal2-input" placeholder="Montant initial"><input id="swal-int" type="number" class="swal2-input" placeholder="Intérêt (0 si aucun)">`,
+        showCancelButton:true, confirmButtonText:'Ajouter', confirmButtonColor:'#6366f1',
+        preConfirm: () => ({ type: document.querySelector('.swal2-input').value, partenaire: document.getElementById('swal-part').value, montant: document.getElementById('swal-mont').value, interet: document.getElementById('swal-int').value })
+    }).then(res => { if(res.isConfirmed && res.value.partenaire) fetch('/api/creances_dettes', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(res.value)}).then(r=>r.json()).then(d=>{ if(d.success) chargerCD(); }); });
+}
+
+function payerCD(id, reste) {
+    Swal.fire({ title:'Effectuer le paiement ?', text:`Montant à régler: {{ config.devise }} ${reste.toFixed(2)}`, input:'number', inputValue:reste, showCancelButton:true, confirmButtonColor:'#10b981', confirmButtonText:'Payer maintenant' })
+    .then(res => { if(res.isConfirmed && res.value) {
+        fetch('/api/creances_dettes', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id, action:'paiement', montant:res.value})})
+        .then(r=>r.json()).then(d=>{ if(d.success) chargerCD(); Swal.fire('Réglé !', '', 'success'); });
+    }});
+}
+</script>
+{% endblock %}

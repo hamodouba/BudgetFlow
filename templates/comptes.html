@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}3 Comptes - BudgetFlow{% endblock %}
+{% block page_title %}Règle des 3 Comptes{% endblock %}
+
+{% block content %}
+<div class="comptes-hero">
+    <div class="hero-info">
+        <h2>Solde Cumulatif des 3 Comptes</h2>
+        <p>Revenus historiquement validés - Dépenses cumulées. Le revenu du mois en cours n'est ajouté qu'après validation.</p>
+    </div>
+    <div class="hero-total">
+        <span>Situation globale</span>
+        <h1>{{ config.devise }} {{ "{:,.2f}".format(soldes_cumul.besoins.solde + soldes_cumul.envies.solde + soldes_cumul.epargne.solde) }}</h1>
+    </div>
+</div>
+
+{% set noms = {'besoins': ('🏠 Besoins Essentiels', 'indigo'), 'envies': ('🎮 Envies & Plaisirs', 'orange'), 'epargne': ('💰 Épargne', 'green')} %}
+{% for comp, (nom, couleur) in noms.items() %}
+    {% set s = soldes_cumul[comp] %}
+    <div class="cumul-card" style="border-top: 4px solid var(--{{ couleur }}-500)">
+        <div class="cumul-header">
+            <h3>{{ nom }} <span style="font-size:13px; color:var(--text-muted)">Règle: {{ s.pct }}%</span></h3>
+            <span class="pending-badge">⏳ En attente des revenus mensuels validés</span>
+        </div>
+        <div class="cumul-amount" style="color: var(--{{ couleur }}-500)">{{ config.devise }} {{ "{:,.2f}".format(s.solde) }}</div>
+        <div class="cumul-details">
+            <div class="cumul-stat">
+                <span>💰 Revenus validés</span>
+                <strong style="color:#10b981">{{ config.devise }} {{ "{:,.2f}".format(s.recu) }}</strong>
+            </div>
+            <div class="cumul-stat">
+                <span>💸 Dépenses cumulées</span>
+                <strong style="color:#ef4444">- {{ config.devise }} {{ "{:,.2f}".format(s.depense) }}</strong>
+            </div>
+            <div class="cumul-stat">
+                <span>📊 Taux d'utilisation</span>
+                <strong style="color:#f59e0b">{{ (s.depense / max(s.recu, 1) * 100)|round(1) }}%</strong>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+{% endblock %}

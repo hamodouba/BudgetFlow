@@ -1,0 +1,29 @@
+# 🗄️ Données & Base de données
+data/
+!data/.gitkeep
+
+# 🐍 Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# 🌍 Environnement virtuel
+venv/
+env/
+.venv/
+ENV/
+
+# 💻 IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# 🔒 Fichiers sensibles
+.env
+*.log

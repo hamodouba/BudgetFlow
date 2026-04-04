@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BudgetFlow{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    {% if user %}
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-wallet"></i>
+                    <span>BudgetFlow</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/revenus" class="nav-item {% if request.path == '/revenus' %}active{% endif %}">
+                    <i class="fas fa-money-bill-trend-up"></i>
+                    <span>Revenus</span>
+                </a>
+                <a href="/depenses" class="nav-item {% if request.path == '/depenses' %}active{% endif %}">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Dépenses</span>
+                </a>
+                <a href="/comptes" class="nav-item {% if request.path == '/comptes' %}active{% endif %}">
+                    <i class="fas fa-vault"></i>
+                    <span>3 Comptes</span>
+                </a>
+                <a href="/rapports" class="nav-item {% if request.path == '/rapports' %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Rapports</span>
+                </a>
+                <a href="/parametres" class="nav-item {% if request.path == '/parametres' %}active{% endif %}">
+                    <i class="fas fa-gear"></i>
+                    <span>Paramètres</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="/logout" class="nav-item logout">
+                    <i class="fas fa-right-from-bracket"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar fixed-header">
+                <div class="topbar-left">
+                    <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                    <p class="topbar-date" id="currentDate"></p>
+                </div>
+                <div class="topbar-right">
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <span>{{ user }}</span>
+                    </div>
+                </div>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <div class="content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    {% else %}
+    {% block login_content %}{% endblock %}
+    {% endif %}
+
+    <script>
+        // Date courante
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('fr-FR', options);
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
