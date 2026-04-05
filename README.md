@@ -79,10 +79,10 @@
 ![Dashboard](Dashboard.png)
 
 ### Calendrier des revenus
-![Calendrier](Revenus.png)
+![Calendrier](revenus.png)
 
 ### Gestion des dettes
-![Dettes](Dettes.png)
+![Dettes](Dette.png)
 
 ---
 
