@@ -76,13 +76,13 @@
 ## 🎯 Aperçu
 
 ### Dashboard
-![Dashboard](https://via.placeholder.com/800x400/6366f1/ffffff?text=Dashboard+BudgetFlow)
+![Dashboard](Dashboard.png)
 
 ### Calendrier des revenus
-![Calendrier](https://via.placeholder.com/800x400/10b981/ffffff?text=Calendrier+Validation)
+![Calendrier](Revenus.png)
 
 ### Gestion des dettes
-![Dettes](https://via.placeholder.com/800x400/f59e0b/ffffff?text=Gestion+Dettes)
+![Dettes](Dettes.png)
 
 ---
 
